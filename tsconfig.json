@@ -10,9 +10,9 @@
         "strict": true /* Enable all strict type-checking options. */,
         "skipLibCheck": true /* Skip type checking all .d.ts files. */,
         /* BUILD时使用下面的参数 */
-        "module": "CommonJS" /* Specify what module code is generated. */
+        // "module": "CommonJS" /* Specify what module code is generated. */
         /* DEBUG使用下面的参数 */
-        // "module": "commonjs" /* Specify what module code is generated. */,
-        // "sourceMap": true /* Create source map files for emitted JavaScript files. */
+        "module": "CommonJS" /* Specify what module code is generated. */,
+        "sourceMap": true /* Create source map files for emitted JavaScript files. */
     }
 }

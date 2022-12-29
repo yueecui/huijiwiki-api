@@ -2,5 +2,8 @@
 .vscode
 src
 node_modules
+.gitignore
 package-lock.json
 tsconfig.json
+yarn.lock
+
