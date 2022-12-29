@@ -3,10 +3,14 @@ import { HuijiRequester } from './HuijiRequester';
 import {
     MWPage,
     MWResponseAsk,
+    MWResponseBase,
     MWResponseClientLogin,
+    MWResponseDelete,
+    MWResponseEdit,
     MWResponseQueryAllPages,
     MWResponseQueryCategoryMembers,
     MWResponseQueryTokens,
+    MWResponseUndelete,
     MWResponseUpload,
 } from './typeMWApiResponse';
 
@@ -79,7 +83,13 @@ export class HuijiWiki {
         this.logLevel = level;
     }
 
-    async login(username: string, password: string) {
+    /**
+     * 登录WIKI
+     * @param username 用户名
+     * @param password 密码
+     * @returns 是否登录成功
+     */
+    async apiLogin(username: string, password: string) {
         username = username.trim();
         password = password.trim();
         let loginToken = '';
@@ -114,7 +124,11 @@ export class HuijiWiki {
         }
     }
 
-    async queryCsrfToken(): Promise<string> {
+    /**
+     * 获取CSRF Token
+     * @returns CSRF Token
+     */
+    async apiQueryCsrfToken(): Promise<string> {
         if (this.csrfToken !== '') {
             return this.csrfToken;
         }
@@ -127,8 +141,8 @@ export class HuijiWiki {
             this.csrfToken = '';
             // 尝试重新登录
             if (this.loginUsername !== '' && this.loginPassword !== '') {
-                if (await this.login(this.loginUsername, this.loginPassword)) {
-                    return await this.queryCsrfToken();
+                if (await this.apiLogin(this.loginUsername, this.loginPassword)) {
+                    return await this.apiQueryCsrfToken();
                 } else {
                     this.loginUsername = '';
                     this.loginPassword = '';
@@ -141,24 +155,32 @@ export class HuijiWiki {
         return this.csrfToken;
     }
 
+    resultCsrfTokenMissing<T extends MWResponseBase = MWResponseBase>() {
+        return {
+            error: {
+                code: 'csrf-token-missing',
+                info: 'CSRF Token 为空',
+            },
+        } as T;
+    }
+
     /**
-     * 编辑一个条目
+     * Edit API
      * @param title 条目标题
      * @param text 条目内容
      * @param options 选项
      * @returns API 返回值
      */
-    async edit(title: string, text: string, options?: { isBot?: boolean; summary?: string }) {
-        const csrfToken = await this.queryCsrfToken();
+    async apiEdit(title: string, text: string, options?: { isBot?: boolean; summary?: string }) {
+        const csrfToken = await this.apiQueryCsrfToken();
         if (csrfToken === '') {
-            this.error('编辑失败，因为 CSRF Token 为空');
-            return;
+            return this.resultCsrfTokenMissing<MWResponseEdit>();
         }
         options = options || {};
         const isBot = options.isBot ?? true;
         const summary = options.summary ?? 'Huiji Bot 编辑';
 
-        return await this.huijiRequester.request({
+        return await this.huijiRequester.request<MWResponseEdit>({
             action: 'edit',
             title: title,
             text: text,
@@ -169,12 +191,23 @@ export class HuijiWiki {
     }
 
     /**
+     * 编辑一个页面
+     * @param title 条目标题
+     * @param text 条目内容
+     * @param options 选项
+     * @returns API 返回值
+     */
+    async editPage(title: string, text: string, options?: { isBot?: boolean; summary?: string }) {
+        return await this.apiEdit(title, text, options);
+    }
+
+    /**
      * Query AllPages API
      * @param filter 需要查询的条件
      * @param options 选项
      * @returns API 返回值
      */
-    async queryAllPages(
+    async apiQueryAllPages(
         filter?: {
             namespace?: number;
             // 以后需要别的再加
@@ -201,10 +234,10 @@ export class HuijiWiki {
      * 通过命名空间ID查询条目
      * @param namespace 命名空间ID
      * @param options 选项
-     * @returns API 返回值
+     * @returns 查询结果
      */
     async getPageListByNamespace(namespace: number, options?: { limit?: number; continue?: string }) {
-        const res = await this.queryAllPages({ namespace: namespace }, options);
+        const res = await this.apiQueryAllPages({ namespace: namespace }, options);
         return {
             pages: res.query.allpages,
             continue: res.continue?.apcontinue ?? '',
@@ -217,7 +250,7 @@ export class HuijiWiki {
      * @param options 选项
      * @returns API 返回值
      */
-    async queryCategoryMembers(
+    async apiQueryCategoryMembers(
         filter?: {
             category?: string;
         },
@@ -243,10 +276,10 @@ export class HuijiWiki {
      * 通过分类名查询条目
      * @param category 分类名称
      * @param options 选项
-     * @returns API 返回值
+     * @returns 查询结果
      */
     async getPageListByCategory(category: string, options?: { limit?: number; continue?: string }) {
-        const res = await this.queryCategoryMembers({ category: category }, options);
+        const res = await this.apiQueryCategoryMembers({ category: category }, options);
         return {
             pages: res.query.categorymembers,
             continue: res.continue?.cmcontinue ?? '',
@@ -255,8 +288,10 @@ export class HuijiWiki {
 
     /**
      * Ask API
+     * @param query 查询语句
+     * @returns API 返回值
      */
-    async ask(query: string) {
+    async apiAsk(query: string) {
         return await this.huijiRequester.request<MWResponseAsk>({
             action: 'ask',
             query: query,
@@ -266,13 +301,16 @@ export class HuijiWiki {
 
     /**
      * 通过SMW查询条目
+     * @param query 查询语句
+     * @param options 选项
+     * @returns 查询结果
      */
     async getPageListBySMW(query: string, options?: { limit?: number; offset?: number }) {
         const queryArray = [query];
         queryArray.push(`limit=${options?.limit ?? 500}`);
         queryArray.push(`offset=${options?.offset ?? 0}`);
 
-        const res = await this.ask(queryArray.join('|'));
+        const res = await this.apiAsk(queryArray.join('|'));
         const pageList = [] as MWPage[];
         for (const pageInfoTop of res.query.results) {
             for (const pageName in pageInfoTop) {
@@ -290,8 +328,6 @@ export class HuijiWiki {
         };
     }
 
-    // MOVE
-
     /**
      * upload API
      * @param file 上传的文件Buffer
@@ -299,12 +335,12 @@ export class HuijiWiki {
      * @param options 选项
      * @returns API 返回值
      */
-    async upload(file: Buffer, filename: string, options?: { comment?: string; text?: string }) {
-        const csrfToken = await this.queryCsrfToken();
+    async apiUpload(file: Buffer, filename: string, options?: { comment?: string; text?: string }) {
+        const csrfToken = await this.apiQueryCsrfToken();
         if (csrfToken === '') {
-            this.error('编辑失败，因为 CSRF Token 为空');
-            return;
+            return this.resultCsrfTokenMissing<MWResponseUpload>();
         }
+
         return await this.huijiRequester.request<MWResponseUpload>({
             action: 'upload',
             filename: filename,
@@ -321,29 +357,90 @@ export class HuijiWiki {
      * @param filepath 需要上传的文件路径
      * @param filename 上传的文件名
      * @param options 选项
-     * @returns API 返回值
+     * @returns 操作结果
      */
     async uploadImage(filepath: string, filename: string, options?: { comment?: string; text?: string }) {
         let file: Buffer;
         try {
             file = readFileSync(filepath);
         } catch (e) {
-            this.error(`读取文件失败：${filepath}`);
-            return;
+            return {
+                error: {
+                    code: 'readfile-failed',
+                    info: `读取文件失败：${filepath}`,
+                },
+            } as MWResponseUpload;
         }
 
-        return await this.upload(file, filename, options);
+        return await this.apiUpload(file, filename, options);
     }
 
-    // 回退编辑
+    /**
+     * delete API
+     * @param title 要删除条目的标题
+     * @param reason 删除理由
+     * @returns API 返回值
+     */
+    async apiDelete(title: string, reason?: string) {
+        const csrfToken = await this.apiQueryCsrfToken();
+        if (csrfToken === '') {
+            return this.resultCsrfTokenMissing<MWResponseDelete>();
+        }
 
-    // 删除条目
+        return await this.huijiRequester.request<MWResponseDelete>({
+            action: 'delete',
+            title: title,
+            token: csrfToken,
+            reason: reason ?? '',
+        });
+    }
 
-    // 恢复删除
+    /**
+     * 删除条目
+     * @param title 要删除条目的标题
+     * @param reason 删除理由
+     * @returns 操作结果
+     */
+    async deletePage(title: string, reason?: string) {
+        return await this.apiDelete(title, reason);
+    }
+
+    /**
+     * Undelete API
+     * @param title 要恢复删除的条目标题
+     * @param reason 恢复理由
+     * @returns API 返回值
+     */
+    async apiUndelete(title: string, reason?: string) {
+        const csrfToken = await this.apiQueryCsrfToken();
+        if (csrfToken === '') {
+            return this.resultCsrfTokenMissing<MWResponseUndelete>();
+        }
+
+        return await this.huijiRequester.request<MWResponseUndelete>({
+            action: 'undelete',
+            title: title,
+            token: csrfToken,
+            reason: reason ?? '',
+        });
+    }
+
+    /**
+     * 恢复删除的条目
+     * @param title 要恢复删除的条目标题
+     * @param reason 恢复理由
+     * @returns 操作结果
+     */
+    async undeletePage(title: string, reason?: string) {
+        return await this.apiUndelete(title, reason);
+    }
 
     // 获取源代码 RAW
 
     // 刷新页面缓存 / 空编辑
 
     // 获取重定向
+
+    // MOVE
+    // 回退编辑（后面再做）
 }

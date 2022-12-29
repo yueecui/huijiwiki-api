@@ -99,7 +99,7 @@ export interface MWResponseAsk<T = any> extends MWResponseBase {
 }
 
 ////////////////////////////////////////
-// EDIT
+// 编辑相关
 ////////////////////////////////////////
 
 export interface MWResponseEdit extends MWResponseBase {
@@ -119,5 +119,19 @@ export interface MWResponseUpload extends MWResponseBase {
     upload: {
         result: string;
         filename: string;
+    };
+}
+
+export interface MWResponseDelete extends MWResponseBase {
+    delete: {
+        title: string;
+        reason: string;
+    };
+}
+
+export interface MWResponseUndelete extends MWResponseBase {
+    undelete: {
+        title: string;
+        reason: string;
     };
 }

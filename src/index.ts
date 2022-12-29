@@ -3,7 +3,7 @@ import { TESTBOT_PASSWORD, TESTBOT_USERNAME } from './secret';
 
 async function tryTest() {
     const test = new HuijiWiki('danteng');
-    if (await test.login(TESTBOT_USERNAME, TESTBOT_PASSWORD)) {
+    if (await test.apiLogin(TESTBOT_USERNAME, TESTBOT_PASSWORD)) {
         console.log('login success');
     } else {
         console.log('login failed');
@@ -16,7 +16,8 @@ async function tryTest() {
     // });
     const filepath = 'D:\\Pictures\\IMG_0089.JPG';
     console.log(filepath);
-    const res = await test.uploadImage(filepath, 'elysia.jpg', { comment: 'test' });
+    // const res = await test.uploadImage(filepath, 'elysia.jpg', { comment: 'test' });
+    const res = await test.undeletePage('文件:Elysia.png', 'test undel');
 
     console.log(JSON.stringify(res));
 }

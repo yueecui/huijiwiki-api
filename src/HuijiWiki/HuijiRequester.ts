@@ -73,7 +73,7 @@ export class HuijiRequester {
         const res = method === 'GET' ? await this.handleGet<T>(params) : await this.handlePost<T>(params);
         if (res.status === 200) {
             this.cookie.setCookies(res.headers['set-cookie'] || []);
-            this.lastResult = this.checkResultData(res.data);
+            this.lastResult = res.data;
             return this.lastResult;
         } else {
             if (retryCount < this.maxRetryCount) {
@@ -83,24 +83,6 @@ export class HuijiRequester {
                 throw new Error(`Request failed with status code ${res.status}`);
             }
         }
-    }
-
-    private async checkResultData<T extends MWResponseBase = MWResponseBase>(data: T) {
-        if (data.error) {
-            switch (data.error.code) {
-                // 上传文件时，文件已存在，且内容未改变
-                case 'fileexists-no-change':
-                    return {
-                        upload: {
-                            result: 'no-change',
-                            filename: '',
-                        },
-                    } as MWResponseUpload;
-                default:
-                    throw new Error(`[${data.error.code}] ${data.error.info}`);
-            }
-        }
-        return data;
     }
 
     private async handleGet<T = MWResponseBase>(params: RequestParams) {
