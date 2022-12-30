@@ -36,7 +36,7 @@ export interface MWResponseQueryTokens extends MWResponseBase {
     };
 }
 
-export interface MWResponseQueryAllPages extends MWResponseBase {
+export interface MWResponseQueryListAllPages extends MWResponseBase {
     query: {
         allpages: MWPage[];
     };
@@ -50,12 +50,26 @@ export interface MWResponseQueryAllPages extends MWResponseBase {
     };
 }
 
-export interface MWResponseQueryCategoryMembers extends MWResponseBase {
+export interface MWResponseQueryListCategoryMembers extends MWResponseBase {
     query: {
         categorymembers: MWPage[];
     };
     continue?: {
         cmcontinue: string;
+        continue: string;
+    };
+}
+
+export interface MWResponseQueryListAllRedirects extends MWResponseBase {
+    query: {
+        allredirects: {
+            fromid: number;
+            ns: number;
+            title: string;
+        }[];
+    };
+    continue?: {
+        arcontinue: string;
         continue: string;
     };
 }
@@ -77,6 +91,35 @@ export interface MWResponseQueryPropRevisions extends MWResponseBase {
                         };
                     };
                 }[];
+            };
+        };
+    };
+}
+
+export interface MWResponseQueryMetaSiteInfo extends MWResponseBase {
+    query: {
+        general: {
+            sitename: string;
+            base: string;
+            server: string;
+            favicon: string;
+            prefix: string;
+            description: string;
+            avatar: {
+                l: string;
+                ml: string;
+                m: string;
+                s: string;
+            };
+            avatartime: number;
+        };
+        namespaces: {
+            [key: string]: {
+                id: number;
+                case: string;
+                content?: string;
+                canonical?: string;
+                '*': string;
             };
         };
     };

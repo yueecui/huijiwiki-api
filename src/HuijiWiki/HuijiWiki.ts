@@ -9,8 +9,10 @@ import {
     MWResponseEdit,
     MWResponseMove,
     MWResponsePurge,
-    MWResponseQueryAllPages,
-    MWResponseQueryCategoryMembers,
+    MWResponseQueryListAllPages,
+    MWResponseQueryListAllRedirects,
+    MWResponseQueryListCategoryMembers,
+    MWResponseQueryMetaSiteInfo,
     MWResponseQueryPropRevisions,
     MWResponseQueryTokens,
     MWResponseUndelete,
@@ -202,7 +204,7 @@ export class HuijiWiki {
     }
 
     /**
-     * Query AllPages API
+     * Query > List > AllPages API
      * @param filter 需要查询的条件
      * @param options 选项
      * @returns API 返回值
@@ -221,7 +223,7 @@ export class HuijiWiki {
             finalFilter['apnamespace'] = filter.namespace;
         }
 
-        return await this.huijiRequester.request<MWResponseQueryAllPages>({
+        return await this.huijiRequester.request<MWResponseQueryListAllPages>({
             action: 'query',
             list: 'allpages',
             ...finalFilter,
@@ -231,7 +233,7 @@ export class HuijiWiki {
     }
 
     /**
-     * Query CategoryMembers API
+     * Query > List > CategoryMembers API
      * @param filter 需要查询的条件
      * @param options 选项
      * @returns API 返回值
@@ -249,7 +251,7 @@ export class HuijiWiki {
             finalFilter['cmtitle'] = `Category:${filter.category}`;
         }
 
-        return await this.huijiRequester.request<MWResponseQueryCategoryMembers>({
+        return await this.huijiRequester.request<MWResponseQueryListCategoryMembers>({
             action: 'query',
             list: 'categorymembers',
             ...finalFilter,
@@ -259,7 +261,35 @@ export class HuijiWiki {
     }
 
     /**
-     * Query PropRevisions API
+     * Query > List > AllRedirects API
+     * @param filter 查询条件
+     * @param options 选项
+     * @returns API 返回值
+     */
+    async apiQueryListAllRedirects(
+        filter?: {
+            namespace?: number;
+        },
+        options?: { limit?: number; continue?: string }
+    ) {
+        options = options || {};
+        const finalFilter = {} as { [key: string]: string | number };
+        if (filter?.namespace !== undefined) {
+            finalFilter['arnamespace'] = filter.namespace;
+        }
+
+        return await this.huijiRequester.request<MWResponseQueryListAllRedirects>({
+            action: 'query',
+            list: 'allredirects',
+            ...finalFilter,
+            arlimit: options.limit ?? 500,
+            arprop: 'ids|title',
+            ...(options.continue ? { arcontinue: options.continue } : {}),
+        });
+    }
+
+    /**
+     * Query > Prop > Revisions API
      * @param titles 条目标题列表
      * @returns API 返回值
      */
@@ -286,6 +316,20 @@ export class HuijiWiki {
             prop: 'revisions',
             rvprop: 'content',
             rvslots: 'main',
+        });
+    }
+
+    /**
+     * Query > Meta > SiteInfo API
+     * @param props
+     * @returns
+     */
+    async apiQueryMetaSiteInfo(props?: string[]) {
+        props = props || ['general'];
+        return await this.huijiRequester.request<MWResponseQueryMetaSiteInfo>({
+            action: 'query',
+            meta: 'siteinfo',
+            siprop: props.join('|'),
         });
     }
 
@@ -536,6 +580,28 @@ export class HuijiWiki {
         return res[pageId];
     }
 
+    /**
+     * 包装后的查询所有重定向方法
+     * @param namespace 需要查询的命名空间，默认为-1（全部）
+     * @returns 查询结果
+     */
+    async getAllRedirects(namespace?: number, options?: { limit?: number; continue?: string }) {
+        const filter = {} as { [key: string]: number };
+        namespace = namespace ?? -1;
+        if (namespace > -1) {
+            filter['namespace'] = namespace;
+        }
+        return await this.apiQueryListAllRedirects({ ...filter }, options);
+    }
+
+    /**
+     * 获取站点基础信息，也包括命名空间数据
+     * @returns API 返回值
+     */
+    async getSiteInfo() {
+        return await this.apiQueryMetaSiteInfo(['general', 'namespaces']);
+    }
+
     ///////////////////////////////////////////////////
     // WIKI 操作用方法：编辑类
     ///////////////////////////////////////////////////
@@ -622,6 +688,5 @@ export class HuijiWiki {
         return await this.apiMove(from, to, options);
     }
 
-    // 获取重定向
     // 回退编辑（后面再做）
 }
