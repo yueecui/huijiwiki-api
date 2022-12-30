@@ -6,14 +6,14 @@
     "type": "commonjs",
     "scripts": {
         "dev": "ts-node ./src/index.ts",
-        "build": "tsc --declaration",
+        "build": "rimraf dist && tsc --declaration",
         "prestart": "npm run build",
         "run": "node ./dist/index.js",
         "syncyarn": "npx syncyarnlock --save --keepPrefix",
-        "version-patch": "npm version patch",
-        "version-minor": "npm version minor",
-        "version-major": "npm version major",
-        "publish": "npm publish"
+        "version-patch": "rimraf dist && npm version patch",
+        "version-minor": "rimraf dist && npm version minor",
+        "version-major": "rimraf dist && npm version major",
+        "npm-publish": "npm publish"
     },
     "author": "Yuee",
     "license": "MIT",

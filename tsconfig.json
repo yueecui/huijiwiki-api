@@ -14,5 +14,7 @@
         /* DEBUG使用下面的参数 */
         "module": "CommonJS" /* Specify what module code is generated. */
         // "sourceMap": true /* Create source map files for emitted JavaScript files. */
-    }
+    },
+    "include": ["src/**/*"],
+    "exclude": ["node_modules", "dist", "src/secret.ts"]
 }
