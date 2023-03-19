@@ -193,6 +193,8 @@ export class HuijiWiki {
      * @param title 条目标题
      * @param text 条目内容
      * @param options 选项
+     * @param options.isBot 是否为机器人编辑，默认为true
+     * @param options.summary 编辑摘要，默认为'Huiji Bot 编辑'
      * @returns API 返回值
      */
     async apiEdit(title: string, text: string, options?: { isBot?: boolean; summary?: string }) {
@@ -658,9 +660,11 @@ export class HuijiWiki {
      * @param filepath 需要上传的文件路径
      * @param filename 上传的文件名
      * @param options 选项
+     * @param options.comment 上传注释
+     * @param options.text 上传后的条目内容
      * @returns 操作结果
      */
-    async uploadImage(filepath: string, filename: string, options?: { comment?: string; text?: string }) {
+    async uploadFile(filepath: string, filename: string, options?: { comment?: string; text?: string }) {
         let file: Buffer;
         try {
             file = readFileSync(filepath);
@@ -674,6 +678,11 @@ export class HuijiWiki {
         }
 
         return await this.apiUpload(file, filename, options);
+    }
+
+    /** uploadFile别名 */
+    async uploadImage(filepath: string, filename: string, options?: { comment?: string; text?: string }) {
+        return await this.uploadFile(filepath, filename, options);
     }
 
     /**

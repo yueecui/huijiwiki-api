@@ -6,7 +6,7 @@
     "type": "commonjs",
     "scripts": {
         "dev": "ts-node ./src/test.ts",
-        "build": "rimraf dist && tsc --declaration",
+        "build": "rimraf dist && tsc -p ./tsconfig.build.json --declaration",
         "prestart": "npm run build",
         "run": "node ./dist/index.js",
         "syncyarn": "npx syncyarnlock --save --keepPrefix",
