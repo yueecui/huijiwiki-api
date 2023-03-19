@@ -1,4 +1,5 @@
 import { readFileSync } from 'fs';
+import { HuijiLocalCache } from './HuijiLocalCache';
 import { HuijiRequester } from './HuijiRequester';
 import {
     MWPage,
@@ -28,7 +29,6 @@ enum LOG_LEVEL {
 
 export class HuijiWiki {
     private prefix: string;
-    private huijiRequester: HuijiRequester;
     private csrfToken: string = '';
     /** 登录的用户名，可供显示 */
     private username: string = '';
@@ -41,9 +41,16 @@ export class HuijiWiki {
 
     private logLevel: LOG_LEVEL;
 
-    constructor(prefix: string, logLevel?: LOG_LEVEL) {
+    /// 内置对象
+    /** 请求器 */
+    private requester: HuijiRequester;
+    /** 本地缓存 */
+    public localCache: HuijiLocalCache;
+
+    constructor(prefix: string, { sqlitePath, logLevel }: { sqlitePath?: string; logLevel?: LOG_LEVEL } = {}) {
         this.prefix = prefix;
-        this.huijiRequester = new HuijiRequester(prefix);
+        this.requester = new HuijiRequester(prefix);
+        this.localCache = new HuijiLocalCache(prefix, sqlitePath);
         this.logLevel = logLevel ?? LOG_LEVEL.INFO;
     }
 
@@ -85,11 +92,15 @@ export class HuijiWiki {
     }
 
     setUserAgent(userAgent: string) {
-        this.huijiRequester.setUserAgent(userAgent);
+        this.requester.setUserAgent(userAgent);
     }
 
     setLogLevel(level: LOG_LEVEL) {
         this.logLevel = level;
+    }
+
+    compareContent(pageTitle: string, content: string) {
+        return this.localCache.compare(pageTitle, content);
     }
 
     ///////////////////////////////////////////////////
@@ -107,7 +118,7 @@ export class HuijiWiki {
         password = password.trim();
         let loginToken = '';
         {
-            const resToken = await this.huijiRequester.request<MWResponseQueryTokens>({
+            const resToken = await this.requester.request<MWResponseQueryTokens>({
                 action: 'query',
                 meta: 'tokens',
                 type: 'login',
@@ -115,7 +126,7 @@ export class HuijiWiki {
             loginToken = resToken.query.tokens.logintoken;
         }
         {
-            const resLogin = await this.huijiRequester.request<MWResponseClientLogin>({
+            const resLogin = await this.requester.request<MWResponseClientLogin>({
                 action: 'clientlogin',
                 username: username,
                 password: password,
@@ -145,7 +156,7 @@ export class HuijiWiki {
         if (this.csrfToken !== '') {
             return this.csrfToken;
         }
-        const res = await this.huijiRequester.request<MWResponseQueryTokens>({
+        const res = await this.requester.request<MWResponseQueryTokens>({
             action: 'query',
             meta: 'tokens',
         });
@@ -193,7 +204,7 @@ export class HuijiWiki {
         const isBot = options.isBot ?? true;
         const summary = options.summary ?? 'Huiji Bot 编辑';
 
-        return await this.huijiRequester.request<MWResponseEdit>({
+        const res = await this.requester.request<MWResponseEdit>({
             action: 'edit',
             title: title,
             text: text,
@@ -201,6 +212,10 @@ export class HuijiWiki {
             token: csrfToken,
             ...(isBot ? { bot: '1' } : {}),
         });
+        if (!res.error) {
+            await this.localCache.set(title, text);
+        }
+        return res;
     }
 
     /**
@@ -223,7 +238,7 @@ export class HuijiWiki {
             finalFilter['apnamespace'] = filter.namespace;
         }
 
-        return await this.huijiRequester.request<MWResponseQueryListAllPages>({
+        return await this.requester.request<MWResponseQueryListAllPages>({
             action: 'query',
             list: 'allpages',
             ...finalFilter,
@@ -251,7 +266,7 @@ export class HuijiWiki {
             finalFilter['cmtitle'] = `Category:${filter.category}`;
         }
 
-        return await this.huijiRequester.request<MWResponseQueryListCategoryMembers>({
+        return await this.requester.request<MWResponseQueryListCategoryMembers>({
             action: 'query',
             list: 'categorymembers',
             ...finalFilter,
@@ -278,7 +293,7 @@ export class HuijiWiki {
             finalFilter['arnamespace'] = filter.namespace;
         }
 
-        return await this.huijiRequester.request<MWResponseQueryListAllRedirects>({
+        return await this.requester.request<MWResponseQueryListAllRedirects>({
             action: 'query',
             list: 'allredirects',
             ...finalFilter,
@@ -310,7 +325,7 @@ export class HuijiWiki {
             } as MWResponseQueryPropRevisions;
         }
 
-        return await this.huijiRequester.request<MWResponseQueryPropRevisions>({
+        return await this.requester.request<MWResponseQueryPropRevisions>({
             action: 'query',
             ...finalFilter,
             prop: 'revisions',
@@ -326,7 +341,7 @@ export class HuijiWiki {
      */
     async apiQueryMetaSiteInfo(props?: string[]) {
         props = props || ['general'];
-        return await this.huijiRequester.request<MWResponseQueryMetaSiteInfo>({
+        return await this.requester.request<MWResponseQueryMetaSiteInfo>({
             action: 'query',
             meta: 'siteinfo',
             siprop: props.join('|'),
@@ -339,7 +354,7 @@ export class HuijiWiki {
      * @returns API 返回值
      */
     async apiAsk(query: string) {
-        return await this.huijiRequester.request<MWResponseAsk>({
+        return await this.requester.request<MWResponseAsk>({
             action: 'ask',
             query: query,
             api_version: '3',
@@ -359,7 +374,7 @@ export class HuijiWiki {
             return this.resultCsrfTokenMissing<MWResponseUpload>();
         }
 
-        return await this.huijiRequester.request<MWResponseUpload>({
+        return await this.requester.request<MWResponseUpload>({
             action: 'upload',
             filename: filename,
             token: csrfToken,
@@ -382,12 +397,16 @@ export class HuijiWiki {
             return this.resultCsrfTokenMissing<MWResponseDelete>();
         }
 
-        return await this.huijiRequester.request<MWResponseDelete>({
+        const res = await this.requester.request<MWResponseDelete>({
             action: 'delete',
             title: title,
             token: csrfToken,
             reason: reason ?? '',
         });
+        if (!res.error) {
+            await this.localCache.delete(title);
+        }
+        return res;
     }
 
     /**
@@ -402,7 +421,7 @@ export class HuijiWiki {
             return this.resultCsrfTokenMissing<MWResponseUndelete>();
         }
 
-        return await this.huijiRequester.request<MWResponseUndelete>({
+        return await this.requester.request<MWResponseUndelete>({
             action: 'undelete',
             title: title,
             token: csrfToken,
@@ -432,7 +451,7 @@ export class HuijiWiki {
             } as MWResponsePurge;
         }
 
-        return await this.huijiRequester.request<MWResponsePurge>({
+        return await this.requester.request<MWResponsePurge>({
             action: 'purge',
             ...finalFilter,
             forcerecursivelinkupdate: '1',
@@ -466,7 +485,7 @@ export class HuijiWiki {
         options?.movesubpages && (finalOptions.movesubpages = '1');
         options?.noredirect && (finalOptions.noredirect = '1');
 
-        return await this.huijiRequester.request<MWResponseMove>({
+        const res = await this.requester.request<MWResponseMove>({
             action: 'move',
             from: from,
             to: to,
@@ -475,6 +494,10 @@ export class HuijiWiki {
             ...finalOptions,
             ignorewarnings: '1',
         });
+        if (!res.error) {
+            await this.localCache.rename(from, to);
+        }
+        return res;
     }
 
     ///////////////////////////////////////////////////
@@ -538,24 +561,31 @@ export class HuijiWiki {
         };
     }
 
-    cleanQueryPropRevisionsResult(data: MWResponseQueryPropRevisions, useId = false) {
+    async cleanQueryPropRevisionsResult(data: MWResponseQueryPropRevisions, useId = false) {
         const pageTextList = {} as {
             [title: string]: {
+                pageId: number;
+                pageTitle: string;
                 content: string;
                 contentmodel: string;
             };
         };
-        for (const pageId in data.query.pages) {
-            const page = data.query.pages[pageId];
-            if (page.missing !== undefined) {
-                continue;
-            }
-            const key = useId ? page.pageid : page.title;
+        if (!data.error) {
+            for (const pageId in data.query.pages) {
+                const page = data.query.pages[pageId];
+                if (page.missing !== undefined) {
+                    continue;
+                }
+                const key = useId ? page.pageid : page.title;
 
-            pageTextList[key] = {
-                content: page.revisions[0].slots.main['*'],
-                contentmodel: page.revisions[0].slots.main.contentmodel,
-            };
+                pageTextList[key] = {
+                    pageId: page.pageid,
+                    pageTitle: page.title,
+                    content: page.revisions[0].slots.main['*'],
+                    contentmodel: page.revisions[0].slots.main.contentmodel,
+                };
+                await this.localCache.set(page.title, page.revisions[0].slots.main['*']);
+            }
         }
         return pageTextList;
     }
@@ -567,7 +597,13 @@ export class HuijiWiki {
 
     async getPageRawTextByTitle(title: string) {
         const res = await this.getPageRawTextByTitles([title]);
-        return res[title];
+        if (res[title]) {
+            return res[title];
+        } else if (Object.keys(res).length > 0) {
+            return res[Object.keys(res)[0]];
+        } else {
+            return undefined;
+        }
     }
 
     async getPageRawTextByPageIds(pageIds: number[]) {
