@@ -575,7 +575,7 @@ export class HuijiWiki {
         if (!data.error) {
             for (const pageId in data.query.pages) {
                 const page = data.query.pages[pageId];
-                if (page.missing !== undefined) {
+                if (page.missing !== undefined || page.invalid !== undefined) {
                     continue;
                 }
                 const key = useId ? page.pageid : page.title;

@@ -82,6 +82,8 @@ export interface MWResponseQueryPropRevisions extends MWResponseBase {
                 ns: number;
                 title: string;
                 missing?: '';
+                invalid?: '';
+                invalidreason: string;
                 revisions: {
                     slots: {
                         main: {
