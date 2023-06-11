@@ -41,6 +41,9 @@ export class HuijiWiki {
 
     private logLevel: LOG_LEVEL;
 
+    // 状态标记
+    private requeryToken: boolean = false;
+
     /// 内置对象
     /** 请求器 */
     private requester: HuijiRequester;
@@ -188,6 +191,31 @@ export class HuijiWiki {
         } as T;
     }
 
+    async requestWithCsrfToken<T extends MWResponseBase = MWResponseBase>(
+        queryFunc: (csrfToken: string) => Promise<T>
+    ): Promise<T> {
+        const csrfToken = await this.apiQueryCsrfToken();
+        if (csrfToken === '') {
+            return this.resultCsrfTokenMissing<T>();
+        }
+
+        const res = await queryFunc(csrfToken);
+
+        if (res.error && res.error.code === 'badtoken') {
+            if (!this.requeryToken) {
+                this.requeryToken = true;
+                this.csrfToken = '';
+                await this.apiQueryCsrfToken();
+                this.requeryToken = false;
+            } else {
+                await sleep(1000);
+            }
+            return await this.requestWithCsrfToken(queryFunc);
+        }
+
+        return res;
+    }
+
     /**
      * Edit API
      * @param title 条目标题
@@ -197,23 +225,27 @@ export class HuijiWiki {
      * @param options.summary 编辑摘要，默认为'Huiji Bot 编辑'
      * @returns API 返回值
      */
-    async apiEdit(title: string, text: string, options?: { isBot?: boolean; summary?: string }) {
-        const csrfToken = await this.apiQueryCsrfToken();
-        if (csrfToken === '') {
-            return this.resultCsrfTokenMissing<MWResponseEdit>();
-        }
+    async apiEdit(
+        title: string,
+        text: string,
+        options?: { isBot?: boolean; summary?: string }
+    ): Promise<MWResponseEdit> {
         options = options || {};
         const isBot = options.isBot ?? true;
         const summary = options.summary ?? 'Huiji Bot 编辑';
 
-        const res = await this.requester.request<MWResponseEdit>({
-            action: 'edit',
-            title: title,
-            text: text,
-            summary: summary,
-            token: csrfToken,
-            ...(isBot ? { bot: '1' } : {}),
-        });
+        const queryFunc = async (csrfToken: string) => {
+            return await this.requester.request<MWResponseEdit>({
+                action: 'edit',
+                title: title,
+                text: text,
+                summary: summary,
+                token: csrfToken,
+                ...(isBot ? { bot: '1' } : {}),
+            });
+        };
+
+        const res = await this.requestWithCsrfToken(queryFunc);
         if (!res.error) {
             await this.localCache.set(title, text);
         }
@@ -370,21 +402,25 @@ export class HuijiWiki {
      * @param options 选项
      * @returns API 返回值
      */
-    async apiUpload(file: Buffer, filename: string, options?: { comment?: string; text?: string }) {
-        const csrfToken = await this.apiQueryCsrfToken();
-        if (csrfToken === '') {
-            return this.resultCsrfTokenMissing<MWResponseUpload>();
-        }
+    async apiUpload(
+        file: Buffer,
+        filename: string,
+        options?: { comment?: string; text?: string }
+    ): Promise<MWResponseUpload> {
+        const queryFunc = async (csrfToken: string) => {
+            return await this.requester.request<MWResponseUpload>({
+                action: 'upload',
+                filename: filename,
+                token: csrfToken,
+                ignorewarnings: '1',
+                comment: options?.comment ?? '',
+                text: options?.text ?? '',
+                file: file,
+            });
+        };
 
-        return await this.requester.request<MWResponseUpload>({
-            action: 'upload',
-            filename: filename,
-            token: csrfToken,
-            ignorewarnings: '1',
-            comment: options?.comment ?? '',
-            text: options?.text ?? '',
-            file: file,
-        });
+        const res = await this.requestWithCsrfToken(queryFunc);
+        return res;
     }
 
     /**
@@ -394,17 +430,16 @@ export class HuijiWiki {
      * @returns API 返回值
      */
     async apiDelete(title: string, reason?: string) {
-        const csrfToken = await this.apiQueryCsrfToken();
-        if (csrfToken === '') {
-            return this.resultCsrfTokenMissing<MWResponseDelete>();
-        }
+        const queryFunc = async (csrfToken: string) => {
+            return await this.requester.request<MWResponseDelete>({
+                action: 'delete',
+                title: title,
+                token: csrfToken,
+                reason: reason ?? '',
+            });
+        };
 
-        const res = await this.requester.request<MWResponseDelete>({
-            action: 'delete',
-            title: title,
-            token: csrfToken,
-            reason: reason ?? '',
-        });
+        const res = await this.requestWithCsrfToken(queryFunc);
         if (!res.error) {
             await this.localCache.delete(title);
         }
@@ -418,17 +453,16 @@ export class HuijiWiki {
      * @returns API 返回值
      */
     async apiUndelete(title: string, reason?: string) {
-        const csrfToken = await this.apiQueryCsrfToken();
-        if (csrfToken === '') {
-            return this.resultCsrfTokenMissing<MWResponseUndelete>();
-        }
+        const queryFunc = async (csrfToken: string) => {
+            return await this.requester.request<MWResponseUndelete>({
+                action: 'undelete',
+                title: title,
+                token: csrfToken,
+                reason: reason ?? '',
+            });
+        };
 
-        return await this.requester.request<MWResponseUndelete>({
-            action: 'undelete',
-            title: title,
-            token: csrfToken,
-            reason: reason ?? '',
-        });
+        return await this.requestWithCsrfToken(queryFunc);
     }
 
     /**
@@ -477,25 +511,24 @@ export class HuijiWiki {
             noredirect?: boolean;
         }
     ) {
-        const csrfToken = await this.apiQueryCsrfToken();
-        if (csrfToken === '') {
-            return this.resultCsrfTokenMissing<MWResponseMove>();
-        }
-
         const finalOptions = {} as { [key: string]: string };
         options?.movetalk && (finalOptions.movetalk = '1');
         options?.movesubpages && (finalOptions.movesubpages = '1');
         options?.noredirect && (finalOptions.noredirect = '1');
 
-        const res = await this.requester.request<MWResponseMove>({
-            action: 'move',
-            from: from,
-            to: to,
-            token: csrfToken,
-            reason: options?.reason ?? '',
-            ...finalOptions,
-            ignorewarnings: '1',
-        });
+        const queryFunc = async (csrfToken: string) => {
+            return await this.requester.request<MWResponseMove>({
+                action: 'move',
+                from: from,
+                to: to,
+                token: csrfToken,
+                reason: options?.reason ?? '',
+                ...finalOptions,
+                ignorewarnings: '1',
+            });
+        };
+
+        const res = await this.requestWithCsrfToken(queryFunc);
         if (!res.error) {
             await this.localCache.rename(from, to);
         }
@@ -735,3 +768,9 @@ export class HuijiWiki {
 
     // 回退编辑（后面再做）
 }
+
+const sleep = async (ms: number) => {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
+};

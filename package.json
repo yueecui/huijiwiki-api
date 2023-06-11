@@ -22,6 +22,7 @@
         "@types/node": "^18.11.9",
         "@wikimedia/types-wikimedia": "^0.4.0",
         "eslint": "^8.28.0",
+        "p-queue": "^6.6.2",
         "rimraf": "^5.0.1",
         "tslib": "^2.4.1",
         "typescript": "^5.1.3"

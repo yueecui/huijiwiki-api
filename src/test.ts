@@ -1,36 +1,50 @@
+import fs from 'fs';
+import path from 'node:path';
+import PQueue from 'p-queue';
 import { HuijiWiki } from './HuijiWiki/HuijiWiki';
 import { TESTBOT_PASSWORD, TESTBOT_USERNAME } from './secret';
 
-async function tryTest() {
-    const test = new HuijiWiki('starrail', {
-        sqlitePath: 'D:\\Huiji\\asd\\huijiwikiTest.sqlite',
-    });
-    if (await test.apiLogin(TESTBOT_USERNAME, TESTBOT_PASSWORD)) {
-        console.log('login success');
+export const WORKSPACE_PATH = 'D:\\StarRail\\starrail-wiki-workspace';
+export const DATA_OUTPUT_PATH = `${WORKSPACE_PATH}\\data\\wiki`;
+export const SQLITE_PATH = `${WORKSPACE_PATH}\\wikitext.sqlite`;
+export const UPLOAD_PATH = `${WORKSPACE_PATH}\\image\\output`;
+
+async function upload(wiki: HuijiWiki, fileName: string) {
+    const filePath = `${UPLOAD_PATH}\\${fileName}`;
+    const result = await wiki.uploadImage(filePath, fileName);
+    if (result.error && result.error.code != 'fileexists-no-change') {
+        console.log(`上传失败：${fileName}，错误信息：${result.error.info}`);
+        console.log(result);
+        throw new Error('上传失败！');
     } else {
-        console.log('login failed');
-        return;
+        console.log(`上传成功：${fileName}`);
+        // 移除文件
+        // fs.unlinkSync(filePath);
+    }
+}
+
+async function tryTest() {
+    // const wiki = new HuijiWiki(WIKI_PREFIX, { sqlitePath: SQLITE_PATH });
+    const wiki = new HuijiWiki('danteng');
+    if (!(await wiki.apiLogin(TESTBOT_USERNAME, TESTBOT_PASSWORD))) {
+        throw new Error('登录失败！');
+    }
+    const pq = new PQueue({
+        concurrency: 10,
+    });
+
+    const dir = fs.readdirSync(UPLOAD_PATH);
+
+    for (const fileName of dir) {
+        // 如果是文件夹，跳过
+        if (fs.statSync(path.join(UPLOAD_PATH, fileName)).isDirectory()) {
+            continue;
+        }
+
+        pq.add(() => upload(wiki, fileName));
     }
 
-    const res = await test.getPageRawTextByTitle('Gadget:WikiImporter.js');
-
-    // if (res) {
-    //     test.localCache.set('Gadget:WikiImporter.js', 'fdsafas');
-    // }
-
-    console.log(res);
-
-    // const res = await test.editPage('Testabc', 'testcontentBCDE', {
-    //     // summary: 'test',
-    //     // isBot: false,
-    // });
-    // const filepath = 'D:\\Pictures\\IMG_0089.JPG';
-    // console.log(filepath);
-    // const res = await test.uploadImage(filepath, 'elysia.jpg', { comment: 'test' });
-    // const res = await test.undeletePage('文件:Elysia.png', 'test undel');
-    // const res = await test.getAllRedirects(-1, { limit: 10 });
-
-    // console.log(JSON.stringify(res));
+    await pq.onIdle();
 }
 
 tryTest();
