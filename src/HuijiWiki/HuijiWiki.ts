@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
-import { HuijiLocalCache } from './HuijiLocalCache';
 import { HuijiRequester, RequestParams } from './HuijiRequester';
+import { HuijiwikiMemoryCache, IHuijiwikiCache } from './HuijiwikiMemoryCache';
 import {
     MWPage,
     MWResponseAsk,
@@ -49,18 +49,18 @@ export class HuijiWiki {
     /** 请求器 */
     private requester: HuijiRequester;
     /** 本地缓存 */
-    public localCache: HuijiLocalCache;
+    public localCache: IHuijiwikiCache;
 
-    constructor(prefix: string, { sqlitePath, logLevel }: { sqlitePath?: string; logLevel?: LOG_LEVEL } = {}) {
+    constructor(prefix: string, { cache, logLevel }: { cache?: IHuijiwikiCache; logLevel?: LOG_LEVEL } = {}) {
         this.prefix = prefix;
         this.requester = new HuijiRequester(prefix);
-        this.localCache = new HuijiLocalCache(prefix, sqlitePath);
+        this.localCache = cache ? cache : new HuijiwikiMemoryCache();
         this.logLevel = logLevel ?? LOG_LEVEL.INFO;
     }
 
-    ///////////////////////////////////////////////////
-    // 基础方法
-    ///////////////////////////////////////////////////
+    // ------------------------------------------------
+    // -- 基础方法
+    // ------------------------------------------------
 
     log(msg: string, level: LOG_LEVEL = LOG_LEVEL.INFO) {
         if (level < this.logLevel) {
@@ -107,9 +107,9 @@ export class HuijiWiki {
         return this.localCache.compare(pageTitle, content);
     }
 
-    ///////////////////////////////////////////////////
-    // API 请求方法
-    ///////////////////////////////////////////////////
+    // ------------------------------------------------
+    // -- API 请求方法
+    // ------------------------------------------------
 
     /**
      * 登录WIKI
@@ -595,9 +595,9 @@ export class HuijiWiki {
         return res;
     }
 
-    ///////////////////////////////////////////////////
-    // WIKI 操作用方法：查询类
-    ///////////////////////////////////////////////////
+    // ------------------------------------------------
+    // -- WIKI 操作用方法：查询类
+    // ------------------------------------------------
 
     /**
      * 通过命名空间ID查询条目
@@ -733,9 +733,9 @@ export class HuijiWiki {
         return await this.apiQueryMetaSiteInfo(['general', 'namespaces']);
     }
 
-    ///////////////////////////////////////////////////
-    // WIKI 操作用方法：编辑类
-    ///////////////////////////////////////////////////
+    // ------------------------------------------------
+    // -- WIKI 操作用方法：编辑类
+    // ------------------------------------------------
 
     /**
      * 编辑一个页面
