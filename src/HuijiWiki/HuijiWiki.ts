@@ -108,6 +108,38 @@ export class HuijiWiki {
     }
 
     // ------------------------------------------------
+    // -- 自定义请求
+    // ------------------------------------------------
+
+    /**
+     * 自定义请求
+     * @param params 请求参数
+     * @param method 请求方法
+     */
+    async request<T extends MWResponseBase = MWResponseBase>(
+        params: RequestParams,
+        method?: 'GET' | 'POST'
+    ): Promise<T> {
+        return await this.requester.request<T>(params, method);
+    }
+
+    /**
+     * 自定义GET请求
+     * @param params 请求参数
+     */
+    async get<T extends MWResponseBase = MWResponseBase>(params: RequestParams) {
+        return await this.requester.get<T>(params);
+    }
+
+    /**
+     * 自定义POST请求
+     * @param params 请求参数
+     */
+    async post<T extends MWResponseBase = MWResponseBase>(params: RequestParams) {
+        return await this.requester.post<T>(params);
+    }
+
+    // ------------------------------------------------
     // -- API 请求方法
     // ------------------------------------------------
 
@@ -265,15 +297,6 @@ export class HuijiWiki {
         }
 
         return res;
-    }
-
-    /**
-     * 自定义请求
-     * @param params 请求参数
-     * @param method 请求方法
-     */
-    async request(params: RequestParams, method?: 'GET' | 'POST'): Promise<MWResponseBase> {
-        return await this.requester.request<MWResponseBase>(params, method);
     }
 
     /**
