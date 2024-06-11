@@ -1,3 +1,3 @@
-import { HuijiWiki } from './HuijiWiki/HuijiWiki';
+import { HuijiWiki } from './HuijiWiki/HuijiWiki.js';
 
 export { HuijiWiki };

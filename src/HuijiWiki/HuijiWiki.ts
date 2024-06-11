@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
-import { HuijiRequester, RequestParams } from './HuijiRequester';
-import { HuijiwikiMemoryCache, IHuijiwikiCache } from './HuijiwikiMemoryCache';
-import {
+import { HuijiRequester, type RequestParams } from './HuijiRequester.js';
+import { HuijiwikiMemoryCache, type IHuijiwikiCache } from './HuijiwikiMemoryCache.js';
+import type {
     MWPage,
     MWResponseAsk,
     MWResponseBase,
@@ -19,7 +19,7 @@ import {
     MWResponseQueryTokens,
     MWResponseUndelete,
     MWResponseUpload,
-} from './typeMWApiResponse';
+} from './typeMWApiResponse.js';
 
 enum LOG_LEVEL {
     INFO = 10,
@@ -51,9 +51,13 @@ export class HuijiWiki {
     /** 本地缓存 */
     public localCache: IHuijiwikiCache;
 
-    constructor(prefix: string, { cache, logLevel }: { cache?: IHuijiwikiCache; logLevel?: LOG_LEVEL } = {}) {
+    constructor(
+        prefix: string,
+        authKey: string,
+        { cache, logLevel }: { cache?: IHuijiwikiCache; logLevel?: LOG_LEVEL } = {}
+    ) {
         this.prefix = prefix;
-        this.requester = new HuijiRequester(prefix);
+        this.requester = new HuijiRequester(prefix, authKey);
         this.localCache = cache ? cache : new HuijiwikiMemoryCache();
         this.logLevel = logLevel ?? LOG_LEVEL.INFO;
     }

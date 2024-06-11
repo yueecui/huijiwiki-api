@@ -1,15 +1,13 @@
 import axios from 'axios';
 import FormData from 'form-data';
-import { HuijiCookies } from './HuijiCookie';
-import { MWResponseBase, MWResponseUpload } from './typeMWApiResponse';
+import { HuijiCookies } from './HuijiCookie.js';
+import { MWResponseBase, MWResponseUpload } from './typeMWApiResponse.js';
 
 export type RequestParams = { action: string; method?: 'GET' | 'POST' } & Record<string, any>;
 
 export class HuijiRequester {
-    private prefix: string;
     private apiUrl: string;
     private cookie: HuijiCookies;
-    private csrftoken: string = '';
     private headers: Record<string, string>;
     private userAgent: string = 'Huiji bot/0.0.1';
 
@@ -19,11 +17,12 @@ export class HuijiRequester {
     private lastResult: any;
     private maxRetryCount = 3;
 
-    constructor(prefix: string) {
-        this.prefix = prefix;
+    constructor(prefix: string, authKey: string) {
         this.apiUrl = `https://${prefix}.huijiwiki.com/api.php`;
         this.cookie = new HuijiCookies();
-        this.headers = {};
+        this.headers = {
+            'X-authkey': authKey,
+        };
     }
 
     static getMethod(params: RequestParams) {

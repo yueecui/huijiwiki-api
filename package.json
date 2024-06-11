@@ -1,9 +1,9 @@
 {
     "name": "huijiwiki-api",
-    "version": "0.5.1",
+    "version": "0.6.0",
     "description": "HuijiWiki NodeAPI库",
     "main": "./dist/index.js",
-    "type": "commonjs",
+    "type": "module",
     "scripts": {
         "dev": "ts-node ./src/test.ts",
         "build": "rimraf dist && tsc -p ./tsconfig.build.json --declaration",
@@ -18,16 +18,17 @@
     "author": "Yuee",
     "license": "MIT",
     "devDependencies": {
-        "@types/jquery": "^3.5.29",
-        "@types/node": "^20.11.6",
-        "@wikimedia/types-wikimedia": "^0.4.2",
-        "eslint": "^8.56.0",
-        "rimraf": "^5.0.5",
-        "tslib": "^2.6.2",
-        "typescript": "^5.3.3"
+        "@types/jquery": "^3.5.30",
+        "@types/node": "^20.14.2",
+        "@wikimedia/types-wikimedia": "^0.4.4",
+        "eslint": "^9.4.0",
+        "rimraf": "^5.0.7",
+        "tslib": "^2.6.3",
+        "typescript": "^5.4.5"
     },
     "dependencies": {
-        "axios": "^1.6.5",
+        "axios": "^1.7.2",
         "form-data": "^4.0.0"
-    }
+    },
+    "packageManager": "yarn@4.3.0"
 }
