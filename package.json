@@ -1,6 +1,6 @@
 {
     "name": "huijiwiki-api",
-    "version": "0.6.0",
+    "version": "0.6.1",
     "description": "HuijiWiki NodeAPI库",
     "main": "./dist/index.js",
     "type": "module",
