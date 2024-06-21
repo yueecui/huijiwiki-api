@@ -1,6 +1,6 @@
 {
     "name": "huijiwiki-api",
-    "version": "0.6.1",
+    "version": "0.7.0",
     "description": "HuijiWiki NodeAPI库",
     "main": "./dist/index.js",
     "type": "module",
@@ -19,16 +19,16 @@
     "license": "MIT",
     "devDependencies": {
         "@types/jquery": "^3.5.30",
-        "@types/node": "^20.14.2",
+        "@types/node": "^20.14.7",
         "@wikimedia/types-wikimedia": "^0.4.4",
-        "eslint": "^9.4.0",
+        "eslint": "^9.5.0",
         "rimraf": "^5.0.7",
         "tslib": "^2.6.3",
-        "typescript": "^5.4.5"
+        "typescript": "^5.5.2"
     },
     "dependencies": {
         "axios": "^1.7.2",
         "form-data": "^4.0.0"
     },
-    "packageManager": "yarn@4.3.0"
+    "packageManager": "yarn@4.3.1"
 }

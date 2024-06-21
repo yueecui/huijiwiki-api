@@ -1,9 +1,11 @@
 .git
 .vscode
+.yarn
 src
 node_modules
 .gitignore
 package-lock.json
 tsconfig.json
+tsconfig.build.json
 yarn.lock
-
+.yarnrc.yml
