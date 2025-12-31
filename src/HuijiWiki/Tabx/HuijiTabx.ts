@@ -12,7 +12,7 @@ export class HuijiTabx<T extends Record<string, any> = Record<string, any>> {
     private rowSchame;
 
     private constructor(private raw: HuijiTabxRaw) {
-        this.mainKeyName = raw.schema.fields[0].name;
+        this.mainKeyName = raw.schema.fields[0].title.en;
         this.rowSchame = {
             type: 'object',
             additionalProperties: false,
@@ -20,14 +20,14 @@ export class HuijiTabx<T extends Record<string, any> = Record<string, any>> {
                 const properties: Record<string, JSONSchema> = {};
                 raw.schema.fields.forEach((field) => {
                     if (['string', 'number', 'boolean'].includes(field.type)) {
-                        properties[field.name] = { type: ['null', field.type as 'string' | 'number' | 'boolean'] };
+                        properties[field.title.en] = { type: ['null', field.type as 'string' | 'number' | 'boolean'] };
                     } else {
-                        throw new Error(`Invalid field type, field: ${field.name}`);
+                        throw new Error(`Invalid field type, field: ${field.title.en}`);
                     }
                 });
                 return properties;
             })(),
-            required: [raw.schema.fields[0].name],
+            required: [this.mainKeyName],
         } satisfies JSONSchema;
         this.data = this.convertTabxRawToData<T>(raw);
         this.description = raw.description?.en ?? '';
@@ -51,7 +51,7 @@ export class HuijiTabx<T extends Record<string, any> = Record<string, any>> {
         const json = utils.sheet_to_json(sheet, { header: 1 }) as any[][];
         const fields: HuijiTabxRaw['schema']['fields'] = json[0].map((field) => {
             return {
-                name: field.toString(),
+                name: field.toString().replace(/\[\]$/, ''),
                 type: '',
                 title: { en: field.toString() },
             };
@@ -89,7 +89,7 @@ export class HuijiTabx<T extends Record<string, any> = Record<string, any>> {
     }
 
     setMainKeyName(mainKeyName: string) {
-        if (!this.raw.schema.fields.find((field) => field.name === mainKeyName)) {
+        if (!this.raw.schema.fields.find((field) => field.title.en === mainKeyName)) {
             throw new Error('Invalid field name');
         }
         this.mainKeyName = mainKeyName;
@@ -108,7 +108,7 @@ export class HuijiTabx<T extends Record<string, any> = Record<string, any>> {
         return raw.data.map((row) => {
             const obj: Record<string, any> = {};
             raw.schema.fields.forEach((field, i) => {
-                obj[field.name] = row[i];
+                obj[field.title.en] = row[i];
             });
             this.validateRow(obj);
             return obj as T;
@@ -163,7 +163,7 @@ export class HuijiTabx<T extends Record<string, any> = Record<string, any>> {
             sources: this.sources,
             schema: this.raw.schema,
             data: this.data.map((row) => {
-                return this.raw.schema.fields.map((field) => row[field.name] ?? null);
+                return this.raw.schema.fields.map((field) => row[field.title.en] ?? null);
             }),
         };
     }
@@ -172,12 +172,16 @@ export class HuijiTabx<T extends Record<string, any> = Record<string, any>> {
         const workbook = utils.book_new();
         const sheet = utils.aoa_to_sheet([
             this.raw.schema.fields.map((field) => field.title.en),
-            ...this.data.map((row) => this.raw.schema.fields.map((field) => row[field.name] ?? null)),
+            ...this.data.map((row) => this.raw.schema.fields.map((field) => row[field.title.en] ?? null)),
         ]);
-        utils.book_append_sheet(workbook, sheet, 'Sheet1');
+
         sheet['!autofilter'] = {
-            ref: `A1:${String.fromCharCode('A'.charCodeAt(0) + this.raw.schema.fields.length - 1)}1`,
+            ref: utils.encode_range({
+                s: { r: 0, c: 0 },
+                e: { r: 0, c: this.raw.schema.fields.length - 1 },
+            }),
         };
+        utils.book_append_sheet(workbook, sheet, 'Sheet1');
         writeFile(workbook, filePath);
     }
 }

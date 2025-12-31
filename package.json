@@ -18,20 +18,20 @@
     "author": "Yuee",
     "license": "MIT",
     "devDependencies": {
-        "@types/jquery": "^3.5.30",
-        "@types/node": "^20.14.7",
-        "@wikimedia/types-wikimedia": "^0.4.4",
-        "eslint": "^9.5.0",
-        "rimraf": "^5.0.7",
-        "tslib": "^2.6.3",
-        "typescript": "^5.5.2"
+        "@types/jquery": "^3.5.33",
+        "@types/node": "^24.10.4",
+        "@wikimedia/types-wikimedia": "^0.5.0",
+        "eslint": "^9.39.2",
+        "rimraf": "^6.1.2",
+        "tslib": "^2.8.1",
+        "typescript": "^5.9.3"
     },
     "dependencies": {
         "ajv": "^8.17.1",
-        "axios": "^1.7.2",
-        "form-data": "^4.0.0",
+        "axios": "^1.13.2",
+        "form-data": "^4.0.5",
         "json-schema-to-ts": "^3.1.1",
         "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
     },
-    "packageManager": "yarn@4.7.0"
+    "packageManager": "yarn@4.12.0"
 }
