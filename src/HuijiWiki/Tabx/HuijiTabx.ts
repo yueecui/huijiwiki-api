@@ -10,6 +10,7 @@ export class HuijiTabx<T extends Record<string, any> = Record<string, any>> {
     private description: string;
     private sources: string;
     private rowSchame;
+    private ajvValidator: any;
 
     private constructor(private raw: HuijiTabxRaw) {
         this.mainKeyName = raw.schema.fields[0].title.en;
@@ -24,7 +25,6 @@ export class HuijiTabx<T extends Record<string, any> = Record<string, any>> {
                     const cleanFieldName = isArray ? fieldName.slice(0, -2) : fieldName;
 
                     if (isArray) {
-                        // 数组字段必须是 string 类型
                         if (field.type !== 'string') {
                             throw new Error(`Array field must be string type, field: ${field.title.en}`);
                         }
@@ -33,7 +33,6 @@ export class HuijiTabx<T extends Record<string, any> = Record<string, any>> {
                             items: { type: 'string' },
                         };
                     } else if (['string', 'number', 'boolean'].includes(field.type)) {
-                        // 普通类型：允许 null 或指定类型
                         properties[cleanFieldName] = { type: ['null', field.type as 'string' | 'number' | 'boolean'] };
                     } else {
                         throw new Error(`Invalid field type, field: ${field.title.en}`);
@@ -43,6 +42,9 @@ export class HuijiTabx<T extends Record<string, any> = Record<string, any>> {
             })(),
             required: [this.mainKeyName],
         } satisfies JSONSchema;
+
+        const ajv = new Ajv();
+        this.ajvValidator = ajv.compile(this.rowSchame);
         this.data = this.convertTabxRawToData<T>(raw);
         this.description = raw.description?.en ?? '';
         this.sources = raw.sources ?? '';
@@ -108,6 +110,8 @@ export class HuijiTabx<T extends Record<string, any> = Record<string, any>> {
         }
         this.mainKeyName = mainKeyName;
         this.rowSchame.required = [mainKeyName];
+        const ajv = new Ajv();
+        this.ajvValidator = ajv.compile(this.rowSchame);
     }
 
     setDesciption(description: string) {
@@ -153,10 +157,8 @@ export class HuijiTabx<T extends Record<string, any> = Record<string, any>> {
      * @param row 一行数据
      */
     validateRow(row: Record<string, any>): void {
-        const ajv = new Ajv();
-        const validator = ajv.compile(this.rowSchame);
-        if (!validator(row)) {
-            throw new Error(ajv.errorsText(validator.errors));
+        if (!this.ajvValidator(row)) {
+            throw new Error(this.ajvValidator.errors?.map((e: any) => e.message).join(', '));
         }
     }
 
