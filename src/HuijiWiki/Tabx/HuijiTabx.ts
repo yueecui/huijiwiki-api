@@ -232,6 +232,9 @@ export class HuijiTabx<T extends Record<string, any> = Record<string, any>> {
     }
 }
 
+const ajv = new Ajv();
+const tabxRawValidator = ajv.compile(HuijiTabxRawSchame);
+
 const validateJsonIsTabx = (json: any) => {
     if (typeof json === 'string') {
         try {
@@ -245,11 +248,9 @@ const validateJsonIsTabx = (json: any) => {
         throw new Error('Invalid JSON object');
     }
 
-    const ajv = new Ajv();
-    const validator = ajv.compile(HuijiTabxRawSchame);
-    const valid = validator(json);
+    const valid = tabxRawValidator(json);
     if (!valid) {
-        throw new Error(ajv.errorsText(validator.errors));
+        throw new Error(tabxRawValidator.errors?.map((e: any) => e.message).join(', '));
     }
 
     return json as HuijiTabxRaw;
