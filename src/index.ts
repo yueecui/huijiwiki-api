@@ -1,5 +1,5 @@
-import { HuijiWiki } from './HuijiWiki/HuijiWiki.js';
-import { HuijiTabx } from './HuijiWiki/Tabx/HuijiTabx.js';
-import type { HuijiTabxRaw } from './HuijiWiki/Tabx/type.js';
+import { HuijiWiki } from './HuijiWiki/HuijiWiki';
+import { HuijiTabx } from './HuijiWiki/Tabx/HuijiTabx';
+import type { HuijiTabxRaw } from './HuijiWiki/Tabx/type';
 
 export { HuijiTabx, HuijiTabxRaw, HuijiWiki };

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import FormData from 'form-data';
-import { HuijiCookies } from './HuijiCookie.js';
-import { MWResponseBase, MWResponseUpload } from './typeMWApiResponse.js';
+import { HuijiCookies } from './HuijiCookie';
+import { MWResponseBase, MWResponseUpload } from './typeMWApiResponse';
 
 export type RequestParams = { action: string; method?: 'GET' | 'POST' } & Record<string, any>;
 
@@ -74,6 +74,7 @@ export class HuijiRequester {
     ): Promise<T> {
         const res = method === 'GET' ? await this.handleGet<T>(params) : await this.handlePost<T>(params);
         if (res.status === 200) {
+            // console.log('请求成功:', params.action, 'cookies:', res.headers['set-cookie'] || []);
             this.cookie.setCookies(res.headers['set-cookie'] || []);
             this.lastResult = res.data;
             return this.lastResult;
@@ -140,5 +141,9 @@ export class HuijiRequester {
 
     getLastResult() {
         return this.lastResult;
+    }
+
+    hasHuijiSession(): boolean {
+        return this.cookie.hasCookie('huiji_session');
     }
 }

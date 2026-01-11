@@ -25,4 +25,8 @@ export class HuijiCookies {
             .map(([key, value]) => `${key}=${value}`)
             .join('; ');
     }
+
+    hasCookie(key: string): boolean {
+        return this.cookies.hasOwnProperty(key);
+    }
 }

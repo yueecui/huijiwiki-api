@@ -1,6 +1,6 @@
 {
     "name": "huijiwiki-api",
-    "version": "0.8.3",
+    "version": "0.8.4",
     "description": "HuijiWiki NodeAPI库",
     "main": "./dist/index.js",
     "type": "commonjs",
@@ -23,6 +23,7 @@
         "@wikimedia/types-wikimedia": "^0.5.0",
         "eslint": "^9.39.2",
         "rimraf": "^6.1.2",
+        "ts-node": "^10.9.2",
         "tslib": "^2.8.1",
         "typescript": "^5.9.3"
     },

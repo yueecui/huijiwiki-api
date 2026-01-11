@@ -1,5 +1,5 @@
 import { HuijiWiki } from './HuijiWiki/HuijiWiki';
-import { HuijiTabx } from './HuijiWiki/Tabx/HuijiTabx';
+import { TESTBOT_PASSWORD, TESTBOT_USERNAME } from './secret';
 
 export const WORKSPACE_PATH = 'D:\\StarRail\\starrail-wiki-workspace';
 export const DATA_OUTPUT_PATH = `${WORKSPACE_PATH}\\data\\wiki`;
@@ -21,16 +21,16 @@ async function upload(wiki: HuijiWiki, fileName: string) {
 }
 
 async function tryTest() {
-    HuijiTabx.newFromXlsxFile('D:\\GBF\\workspace\\excel\\羁绊奖励.xlsx');
+    // HuijiTabx.newFromXlsxFile('D:\\GBF\\workspace\\excel\\羁绊奖励.xlsx');
 
     // const wiki = new HuijiWiki(WIKI_PREFIX, { sqlitePath: SQLITE_PATH });
-    // const wiki = new HuijiWiki('danteng');
-    // if (!(await wiki.apiLogin(TESTBOT_USERNAME, TESTBOT_PASSWORD))) {
-    //     throw new Error('登录失败！');
-    // }
-    // console.log('登录成功，开始测试编辑');
+    const wiki = new HuijiWiki('danteng', 'EbKKuHMf3CWPQo');
+    if (!(await wiki.apiLogin(TESTBOT_USERNAME, TESTBOT_PASSWORD))) {
+        throw new Error('登录失败！');
+    }
+    console.log('登录成功，开始测试编辑');
 
-    // const result = await wiki.editPage('AAAA', 'bbbb');
+    const result = await wiki.editPage('AAAA', 'dddd');
     // console.log(result);
     // const pq = new PQueue({
     //     concurrency: 10,

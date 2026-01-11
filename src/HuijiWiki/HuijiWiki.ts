@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
-import { HuijiRequester, type RequestParams } from './HuijiRequester.js';
-import { HuijiwikiMemoryCache, type IHuijiwikiCache } from './HuijiwikiMemoryCache.js';
+import { HuijiRequester, type RequestParams } from './HuijiRequester';
+import { HuijiwikiMemoryCache, type IHuijiwikiCache } from './HuijiwikiMemoryCache';
 import type {
     MWPage,
     MWResponseAsk,
@@ -19,9 +19,9 @@ import type {
     MWResponseQueryTokens,
     MWResponseUndelete,
     MWResponseUpload,
-} from './typeMWApiResponse.js';
+} from './typeMWApiResponse';
 
-enum LOG_LEVEL {
+export enum LOG_LEVEL {
     INFO = 10,
     WARN = 20,
     ERROR = 30,
@@ -59,7 +59,7 @@ export class HuijiWiki {
         this.prefix = prefix;
         this.requester = new HuijiRequester(prefix, authKey);
         this.localCache = cache ? cache : new HuijiwikiMemoryCache();
-        this.logLevel = logLevel ?? LOG_LEVEL.INFO;
+        this.logLevel = logLevel ?? LOG_LEVEL.NONE;
     }
 
     // ------------------------------------------------
@@ -163,7 +163,7 @@ export class HuijiWiki {
         }
     }
 
-    private async clientlogin(username: string, password: string) {
+    private async clientlogin(username: string, password: string): Promise<boolean> {
         let loginToken = '';
         {
             const resToken = await this.requester.request<MWResponseQueryTokens>({
@@ -173,6 +173,19 @@ export class HuijiWiki {
             });
             loginToken = resToken.query.tokens.logintoken;
         }
+        // 检查是否有huiji_session，如果没有则额外执行一次登录
+        if (!this.requester.hasHuijiSession()) {
+            await this.requester.request<MWResponseClientLogin>({
+                action: 'clientlogin',
+                username: username,
+                password: password,
+                logintoken: '+\\',
+                loginreturnurl: `https://${this.prefix}.huijiwiki.com`,
+                rememberMe: '1',
+            });
+            return await this.clientlogin(username, password);
+        }
+        // 重新执行clientlogin
         const resLogin = await this.requester.request<MWResponseClientLogin>({
             action: 'clientlogin',
             username: username,
@@ -181,6 +194,7 @@ export class HuijiWiki {
             loginreturnurl: `https://${this.prefix}.huijiwiki.com`,
             rememberMe: '1',
         });
+        // console.log('API响应:', resLogin);
         if (resLogin.clientlogin.status === 'PASS') {
             this.username = resLogin.clientlogin.username;
             // 记录下以备后续重新登录用

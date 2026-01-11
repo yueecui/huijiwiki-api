@@ -1,8 +1,8 @@
 import Ajv from 'ajv';
 import type { JSONSchema } from 'json-schema-to-ts';
 import { readFile, utils, writeFile } from 'xlsx';
-import type { HuijiWiki } from '../HuijiWiki.js';
-import { HuijiTabxRawSchame, type HuijiTabxRaw } from './type.js';
+import type { HuijiWiki } from '../HuijiWiki';
+import { HuijiTabxRawSchame, type HuijiTabxRaw } from './type';
 
 export class HuijiTabx<T extends Record<string, any> = Record<string, any>> {
     public data: T[];
