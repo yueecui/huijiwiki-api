@@ -50,18 +50,22 @@ export class HuijiTabx<T extends Record<string, any> = Record<string, any>> {
         this.sources = raw.sources ?? '';
     }
 
-    static newFromJson(json: any): HuijiTabx {
-        return new HuijiTabx(validateJsonIsTabx(json));
+    static newFromJson<T extends Record<string, any> = Record<string, any>>(json: any): HuijiTabx<T> {
+        return new HuijiTabx<T>(validateJsonIsTabx(json));
     }
 
-    static async newFromWiki(wiki: HuijiWiki, title: string) {
+    static async newFromWiki<T extends Record<string, any> = Record<string, any>>(wiki: HuijiWiki, title: string) {
         const response = await wiki.getPageRawTextByTitle(title);
         if (!response) throw new Error('Failed to get page content');
 
-        return new HuijiTabx(validateJsonIsTabx(response.content));
+        return new HuijiTabx<T>(validateJsonIsTabx(response.content));
     }
 
-    static newFromXlsxFile(filePath: string, description: string = '', sources: string = '') {
+    static newFromXlsxFile<T extends Record<string, any> = Record<string, any>>(
+        filePath: string,
+        description: string = '',
+        sources: string = '',
+    ) {
         const workbook = readFile(filePath);
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const json = utils.sheet_to_json(sheet, { header: 1 }) as any[][];
@@ -101,7 +105,7 @@ export class HuijiTabx<T extends Record<string, any> = Record<string, any>> {
             data: json,
         };
 
-        return new HuijiTabx(raw);
+        return new HuijiTabx<T>(raw);
     }
 
     setMainKeyName(mainKeyName: string) {
